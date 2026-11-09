@@ -197,15 +197,27 @@
             re.lastIndex = 0;
 
             for (let m = re.exec(src); m; m = re.exec(src)) {
-                fn(m);
+                // fn may return where scanning should resume.
+                const resume = fn(m);
 
-                if (m[0].length === 0) {
+                if (typeof resume === 'number') {
+                    re.lastIndex = resume;
+                } else if (m[0].length === 0) {
                     re.lastIndex++;
                 }
             }
         };
 
-        each(/(`+)(?!`)([\s\S]*?[^`])\1(?!`)/g, (m) => mark(literal, m.index + m[1].length, m.index + m[0].length - m[1].length));
+        each(/(`+)(?!`)([\s\S]*?[^`])\1(?!`)/g, (m) => {
+            // Fence lines are already handled and code spans never cross a
+            // blank line; rescan right after this backtick run instead.
+            if (hidden[m.index] || /\n[ \t]*\n/.test(m[0])) {
+                return m.index + m[1].length;
+            }
+
+            mark(literal, m.index + m[1].length, m.index + m[0].length - m[1].length);
+            return undefined;
+        });
         // Inline link/image destination and title: "](...)".
         each(/\]\((?:<[^>\n]*>|[^()\s]*(?:\([^()\s]*\)[^()\s]*)*)(?:\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\s*\)/g,
             (m) => mark(hidden, m.index + 1, m.index + m[0].length));
