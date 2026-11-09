@@ -1,137 +1,103 @@
-# <img src="./resources/icons/sc-apps-ghostwriter.svg" align="left" width="32" style="padding-right:5px"> ghostwriter
+# <img src="./resources/icons/sc-apps-moogle.svg" align="left" width="32" style="padding-right:5px"> moogle markdown
 
-*ghostwriter* is a Windows and Linux text editor for Markdown, which is a plain text markup format created by John Gruber. For more information about Markdown, please visit John Gruber’s website at <http://www.daringfireball.net>.  *ghostwriter* provides a relaxing, distraction-free writing environment, whether your masterpiece be that next blog post, your school paper, or your NaNoWriMo novel.  For a tour of its features, please visit the [*ghostwriter* project site](https://ghostwriter.kde.org).
+*moogle* is a distraction-free Markdown editor for Linux and Windows. It is a fork of
+KDE's ghostwriter. It keeps ghostwriter's writing environment, themes, live preview,
+outline, statistics and export options, and adds:
 
-## Screenshots
+- **In-place rendered view.** With Live Preview off, press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd>
+  (View ▸ Swap Raw/Rendered View) to swap the editor between raw Markdown and the
+  rendered document. The scroll position, caret and selection carry over in both
+  directions.
+- **A moogle mascot.** A small, translucent moogle sits in the editor's bottom-right
+  corner: the classic moogle in light mode and the Organization XIII moogle in dark mode.
+  It ignores the mouse, hides in distraction-free mode, and can be turned off with
+  View ▸ Show Mascot.
 
-You can view screenshots of the application at [*ghostwriter's* project site](https://ghostwriter.kde.org).
+## The rendered view
 
-## Documentation
+The rendered view shows the document as the built-in cmark-gfm processor renders it,
+with the same theme CSS as the live preview. It is read-only, but you can still navigate
+it: click to place the caret, use the arrow, Page Up/Down and Home/End keys, extend a
+selection with <kbd>Shift</kbd>, and copy. <kbd>Ctrl</kbd>+click opens a link.
 
-A quick reference guide is available [here](https://ghostwriter.kde.org/documentation/).
+Swapping keeps your place:
 
-## Installation
+| Swap | What carries over |
+|------|-------------------|
+| raw → rendered | The source line at the top of the editor goes to the top of the view. The caret and selection map to the same characters in the rendered text. |
+| rendered → raw | If you scrolled, clicked or selected in the rendered view, those positions map back to the Markdown source. If you didn't, the editor returns exactly as you left it. |
 
-### Windows
+Markup that has no rendered form, such as `**`, link URLs, list numbers and fence
+lines, maps to the nearest visible character. Editing commands are disabled while
+the rendered view is showing. Find, Replace and spell check switch back to raw first.
+Turning Live Preview on also switches back to raw, since the two views are alternatives.
 
-An installer will be forthcoming at the [KDE binary factory](https://binary-factory.kde.org/), along with a nightly build.
-
-### Linux
-
-Versions of *ghostwriter* 2.2.0 and above are provided with KDE Gears releases and should be available with your Linux distribution.  For example, on Ubuntu, you can enter the following commands from your terminal:
-
-    $ sudo apt update
-    $ sudo apt install ghostwriter
-
-On Fedora, enter the following commands instead:
-
-    $ sudo dnf install ghostwriter
-
-You may also find packages on the author's personal repository locations version 2.1.6 in case your GNU/Linux distribution is behind.  If you are running Ubuntu or one of its derivatives (Linux Mint, Xubuntu, etc.), open a terminal, and enter the following commands:
-
-    $ sudo add-apt-repository ppa:wereturtle/ppa
-    $ sudo apt update
-    $ sudo apt install ghostwriter
-
-Fedora users can install older version of *ghostwriter* from [Copr](https://copr.fedorainfracloud.org/) by opening a terminal and entering the following commands:
-
-    $ sudo dnf copr enable wereturtle/stable
-    $ sudo dnf install ghostwriter
-
-Finally, you may follow the build instructions below to install on Linux with the latest source code.
-
-### MacOS
-
-An installer is planned in the future and will be hosted at the [KDE binary factory](https://binary-factory.kde.org/), along with a nightly build.  If you have any expertise to offer, please consider helping with a [Craft configuration](https://community.kde.org/Craft).
+The rendered view always uses cmark-gfm, even if a different processor is selected for
+the live preview, because cmark-gfm can report where each block comes from in the source.
 
 ## Build
 
-If you wish to build from the source code, you will need Qt 6, available from <http://www.qt.io/> if you are on Windows, or in your Linux distribution's repository. If you are on MacOS you will need the latest Qt 6 from brew.
+You need Qt 6 (Base, Svg, WebEngine, WebChannel, Tools), KDE Frameworks 6 (CoreAddons,
+ConfigWidgets, WidgetsAddons, XmlGui, Sonnet) and extra-cmake-modules.
 
-This documentation assumes you already have the source code unzipped in a folder.
+Arch Linux:
 
-### Windows
+    sudo pacman -S cmake ninja extra-cmake-modules qt6-base qt6-svg qt6-webengine qt6-webchannel qt6-tools \
+        kcoreaddons kconfigwidgets kwidgetsaddons kxmlgui sonnet
 
-Building on Windows requires Visual Studio.  General instructions for building KDE applications in Windows are available [here](https://community.kde.org/Get_Involved/development/Windows).
+Debian/Ubuntu:
 
-**IMPORTANT**: If compiling against Qt 6, note that having OpenGL components (in this case, QWebEngineView) will force the entire window to be rendered in OpenGL.  This triggers a bug in Windows in full screen mode where menus can no longer be displayed, such as the menu bar menus or popup menus.
+    sudo apt install cmake ninja-build extra-cmake-modules qt6-base-dev qt6-svg-dev qt6-webengine-dev \
+        qt6-webchannel-dev qt6-tools-dev libkf6coreaddons-dev libkf6configwidgets-dev \
+        libkf6widgetsaddons-dev libkf6xmlgui-dev libkf6sonnet-dev
 
-This issue was not present in Qt 5, since ANGLE was available to bypass the default OpenGL implementation and use DirectX.  With ANGLE having been removed from Qt 6 and the documented solutions not entirely working, you will have to use software rendering instead if you wish to work in full screen mode.  Please see the section below for command line arguments that will disable GPU acceleration.
+Then:
 
-Obviously, the best option is to continue using Qt 5 on Windows for as long as possible.
+    cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+    cmake --build build
+    sudo cmake --install build    # optional
 
-### Linux
+The executable is `build/bin/moogle`.
 
-Before proceeding, ensure that you have the necessary packages installed for Qt 6 and KDE Frameworks.
+## Usage
 
-For Debian or Ubuntu distributions:
+    moogle [--disable-gpu] [file.md]
 
-    $ sudo apt install g++ qtbase5-dev libqt5svg5-dev qtmultimedia5-dev qtwebengine5-dev libqt5concurrent5 qttools5-dev-tools qttools5-dev libkf5coreaddons-dev libkf5xmlgui-dev libkf5configwidgets-dev libkf5sonnet-dev libkf5doctools5 libkf5doctools-dev cmake extra-cmake-modules
+`--disable-gpu` switches to software rendering, which can help on systems where
+OpenGL misbehaves.
 
-For Fedora:
+The live preview and export can also use Pandoc, MultiMarkdown or cmark if they are
+on your `PATH`.
 
-    $ sudo dnf install qt-devel qt5-qtbase-devel qt5-qtsvg-devel qt5-qtmultimedia-devel qt5-qtwebengine-devel qt5-linguist kf5-kcoreaddons-devel kf5-kwidgetsaddons-devel kf5-kconfigwidgets-devel kf5-kxmlgui-devel kf5-sonnet-devel kf5-kdoctools kf5-kdoctools-devel cmake extra-cmake-modules
+Settings live under `~/.config/moogle.local/moogle.conf`. Drafts, backups and custom
+themes live under `~/.local/share/moogle/`.
 
-For other Linux flavors, the list will be similar; `cmake` will tell you if you are missing anything.
+## Tests
 
-Next, open a terminal window, and enter the following commands:
+The unit tests are built with `-DBUILD_TESTING=ON`. The rendered view's
+source-to-DOM mapping has its own round-trip test, which needs headless Chrome:
 
-    $ cd <your_ghostwriter_folder_location>
-    $ mkdir build
-    $ cd build
-    $ cmake ..
-    $ make
-    # make install
+    cmake --build build --target cmark-gfm
+    autotest/renderedview/mapping_test.py --cmark build/bin/cmark-gfm [--chrome /path/to/chrome]
 
-### MacOS
+## Mascot artwork
 
-Please consult the [KDE development guide](https://community.kde.org/Get_Involved/development/Mac) on how to build KDE applications for MacOS in general.
+The mascot images are 2D renders of 3D model rips, produced offline by
+`tools/mascot/render_obj.py` (a small numpy rasterizer for textured OBJ files) and
+`tools/mascot/make_assets.py` (sprites, app icons, About banner):
 
-### FreeBSD
+    python render_obj.py MODEL.obj out.png --yaw 25 --size 1024 --ss 3 --flip-v
+    python make_assets.py light.png dark.png <repo root>
 
-Prerequisites
+- Dark mode: the XIII Moogle from *Kingdom Hearts 358/2 Days* (Nintendo DS), ripped by **Zerox**.
+- Light mode: the Moogle from *Kingdom Hearts* (PlayStation 2), from The Models Resource.
 
-* Git (`git` or `git-lite`)
-
-Install the dependencies
-
-    sudo pkg install cmake ninja kf6-extra-cmake-modules kf6-kconfigwidgets kf6-kcoreaddons kf6-kdoctools kf6-kwidgetsaddons kf6-kxmlgui kf6-sonnet qt6-base qt6-svg qt6-tools qt6-webengine
-
-Get the sources
-
-    git clone https://invent.kde.org/office/ghostwriter
-
-Build
-
-    $ cd ghostwriter
-    $ mkdir build
-    $ cd build
-    $ cmake ..
-    $ make
-    $ sudo make install
-
-## Command Line Usage
-
-For terminal users, *ghostwriter* can be run from the command line.  In your terminal window, simply type the following:
-
-    $ ghostwriter myfile.md
-
-where `myfile.md` is the path to your Markdown text file.
-
-An option to disable GPU acceleration `--disable-gpu` is also available.  Simply type the following:
-
-    $ ghostwriter --disable-gpu
-
-A scenario where you may consider using software rendering would be if compiling against Qt 6 on Windows, and running the application in full screen mode.  See the documented bug under the Windows build instructions above for further details.  Note that the application may inconsistently launch on Windows with GPU acceleration disabled, and it may take several attempts before you can start it successfully.
-
-## Additional Markdown Processors
-
-*ghostwriter* has built-in support for the cmark-gfm processor.  However, it also can auto-detect Pandoc, MultiMarkdown, or cmark processors.  To use any or all of the latter three, simply install them and ensure that their installation locations are added to your system's `PATH` environment variable.  *ghostwriter* will auto-detect their installation on startup, and give you live HTML preview and export options accordingly.
-
-## Contribute
-
-Please read the [contributing guide](https://ghostwriter.kde.org/contribute/) on how to contribute.  Your help would be greatly appreciated!
+The moogle is a character owned by Square Enix. This project is not affiliated with or
+endorsed by Square Enix. The model rips are not covered by the GPL.
 
 ## Licensing
 
-The source code for *ghostwriter* is licensed under the [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl.html).  However, various icons and third-party FOSS code (i.e., cmark-gfm, MathJax, etc.) have different licenses compatible with GPLv3.  Please read the COPYING or LICENSE files in the respective folders for the different licenses.
+The source code is licensed under the [GNU General Public License Version 3](http://www.gnu.org/licenses/gpl.html)
+or later, like the ghostwriter code it is built from. Bundled third-party code
+(cmark-gfm, MathJax, React) and icons have their own GPL-compatible licenses. See the
+COPYING and LICENSE files in their folders.
