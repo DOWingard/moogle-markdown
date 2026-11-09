@@ -38,6 +38,7 @@ target_sources(moogle PRIVATE
     markdown/markdownnode.cpp
     markdown/memoryarena.cpp
     preview/htmlpreview.cpp
+    moogle/structuredlog.cpp
     preview/previewproxy.cpp
     preview/sandboxedwebpage.cpp
     settings/appsettings.cpp

@@ -45,6 +45,14 @@ public:
      */
     QString renderToHtml(const QString &text, const bool smartTypographyEnabled);
 
+    /**
+     * Same as renderToHtml(), optionally annotating every block element with
+     * data-sourcepos="startLine:startCol-endLine:endCol" (1-based lines,
+     * 1-based UTF-8 byte columns) so the rendered DOM can be mapped back to
+     * the Markdown source.
+     */
+    QString renderToHtml(const QString &text, const bool smartTypographyEnabled, const bool sourcePositions);
+
 protected:
     /**
      * Constructor.
