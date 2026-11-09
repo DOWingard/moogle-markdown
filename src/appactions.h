@@ -98,6 +98,7 @@ public:
         Preview,
         HemingwayMode,
         DarkMode,
+        ShowMascot,
         ShowMenubar,
         ShowStatusbar,
         ShowSidebar,

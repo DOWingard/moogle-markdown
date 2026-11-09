@@ -53,6 +53,7 @@ constexpr auto GW_SPACES_FOR_TABS_KEY{"Tabs/insertSpacesForTabs"};
 constexpr auto GW_LOCALE_KEY{"Application/locale"};
 constexpr auto GW_LIVE_SPELL_CHECK_KEY{"Spelling/liveSpellCheck"};
 constexpr auto GW_SIDEBAR_OPEN_KEY{"Window/sidebarOpen"};
+constexpr auto GW_MASCOT_VISIBLE_KEY{"Style/mascotVisible"};
 constexpr auto GW_HTML_PREVIEW_OPEN_KEY{"Preview/htmlPreviewOpen"};
 constexpr auto GW_LAST_USED_EXPORTER_KEY{"Preview/lastUsedExporter"};
 constexpr auto GW_LAST_USED_EXPORTER_PARAMS_KEY{"Preview/lastUsedExporterParams"};
@@ -94,6 +95,7 @@ public:
     bool hideMenuBarInFullScreenEnabled;
     bool htmlPreviewVisible;
     bool sidebarVisible;
+    bool mascotVisible;
     bool insertSpacesForTabsEnabled;
     bool largeHeadingSizesEnabled;
     bool liveSpellCheckEnabled;
@@ -154,6 +156,7 @@ void AppSettings::store()
     appSettings.setValue(constants::GW_BLOCKQUOTE_STYLE_KEY, QVariant(d->italicizeBlockquotes));
     appSettings.setValue(constants::GW_LARGE_HEADINGS_KEY, QVariant(d->largeHeadingSizesEnabled));
     appSettings.setValue(constants::GW_SIDEBAR_OPEN_KEY, QVariant(d->sidebarVisible));
+    appSettings.setValue(constants::GW_MASCOT_VISIBLE_KEY, QVariant(d->mascotVisible));
     appSettings.setValue(constants::GW_HTML_PREVIEW_OPEN_KEY, QVariant(d->htmlPreviewVisible));
     appSettings.setValue(constants::GW_LAST_USED_EXPORTER_KEY, QVariant(d->currentHtmlExporter->name()));
     appSettings.setValue(constants::GW_LAST_USED_EXPORTER_PARAMS_KEY, QVariant(d->currentHtmlExporter->options()));
@@ -667,6 +670,20 @@ void AppSettings::setSidebarVisible(bool visible)
     d->sidebarVisible = visible;
 }
 
+bool AppSettings::mascotVisible() const
+{
+    Q_D(const AppSettings);
+
+    return d->mascotVisible;
+}
+
+void AppSettings::setMascotVisible(bool visible)
+{
+    Q_D(AppSettings);
+
+    d->mascotVisible = visible;
+}
+
 Exporter *AppSettings::currentHtmlExporter() const
 {
     Q_D(const AppSettings);
@@ -857,6 +874,7 @@ AppSettings::AppSettings()
     }
 
     d->sidebarVisible = appSettings.value(constants::GW_SIDEBAR_OPEN_KEY, QVariant(true)).toBool();
+    d->mascotVisible = appSettings.value(constants::GW_MASCOT_VISIBLE_KEY, QVariant(true)).toBool();
     d->htmlPreviewVisible = appSettings.value(constants::GW_HTML_PREVIEW_OPEN_KEY, QVariant(true)).toBool();
 
     QString exporterName = appSettings.value(constants::GW_LAST_USED_EXPORTER_KEY).toString();

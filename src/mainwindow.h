@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QSplitter>
+#include <QStackedLayout>
 #include <QStringLiteral>
 #include <QToolButton>
 
@@ -22,6 +23,7 @@
 #include <KHelpMenu>
 #include <KStandardAction>
 
+#include "moogle/mascotwidget.h"
 #include "preview/htmlpreview.h"
 #include "settings/appsettings.h"
 #include "spelling/spellcheckdecorator.h"
@@ -112,6 +114,9 @@ private:
     QLabel *statusIndicator;
     TimeLabel *timeIndicator;
     HtmlPreview *htmlPreview;
+    QWidget *editorPane;
+    QStackedLayout *editorStack;
+    MascotWidget *mascot = nullptr;
     FolderViewWidget *folderViewWidget = nullptr;
     OutlineWidget *outlineWidget;
     DocumentStatistics *documentStats;

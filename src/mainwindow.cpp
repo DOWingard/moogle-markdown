@@ -40,14 +40,15 @@
 
 #include "export/exporter.h"
 #include "export/exporterfactory.h"
+#include "moogle/structuredlog.h"
 #include "settings/localedialog.h"
 #include "settings/preferencesdialog.h"
 #include "settings/previewoptionsdialog.h"
 #include "settings/simplefontdialog.h"
-#include "theme/stylesheetbuilder.h"
-#include "theme/themeselectiondialog.h"
 #include "spelling/spellcheckdecorator.h"
 #include "spelling/spellcheckdialog.h"
+#include "theme/stylesheetbuilder.h"
+#include "theme/themeselectiondialog.h"
 
 #include "findreplace.h"
 #include "library.h"
@@ -345,6 +346,10 @@ void MainWindow::toggleHemingwayMode(bool checked)
 void MainWindow::toggleFocusMode(bool checked)
 {
     this->focusModeEnabled = checked;
+
+    if (nullptr != mascot) {
+        mascot->setSuppressed(checked);
+    }
 
     if (checked) {
         editor->setFocusMode(appSettings->focusMode());
@@ -821,6 +826,12 @@ void MainWindow::setupActions()
     m_actions->connect(AppActions::DistractionFreeMode, this, &MainWindow::toggleFocusMode);
     appAction(AppActions::Preview)->setChecked(appSettings->htmlPreviewVisible());
     m_actions->connect(AppActions::Preview, this, &MainWindow::toggleHtmlPreview);
+    appAction(AppActions::ShowMascot)->setChecked(appSettings->mascotVisible());
+    m_actions->connect(AppActions::ShowMascot, this, [this](bool checked) {
+        appSettings->setMascotVisible(checked);
+        mascot->setEnabledByUser(checked);
+        logEvent(LogLevel::Info, QStringLiteral("mascot"), QStringLiteral("mascot visibility toggled"), {{"visible", checked}});
+    });
     m_actions->connect(AppActions::HemingwayMode, this, &MainWindow::toggleHemingwayMode);
     appAction(AppActions::DarkMode)->setChecked(appSettings->darkModeEnabled());
     m_actions->connect(AppActions::DarkMode, this, [this](bool enabled) {
@@ -974,9 +985,20 @@ void MainWindow::setupGui()
         adjustSize();
     }
 
+    // The editor lives in a pane so overlays (the mascot) can sit on top.
+    editorPane = new QWidget(this);
+    editorPane->setObjectName("editorPane");
+    editorStack = new QStackedLayout(editorPane);
+    editorStack->setContentsMargins(0, 0, 0, 0);
+    editorStack->addWidget(editor);
+
+    mascot = new MascotWidget(editorPane);
+    mascot->setDarkMode(appSettings->darkModeEnabled());
+    mascot->setEnabledByUser(appSettings->mascotVisible());
+
     splitter = new QSplitter(this);
     splitter->addWidget(sidebar);
-    splitter->addWidget(editor);
+    splitter->addWidget(editorPane);
     splitter->addWidget(htmlPreview);
     splitter->setChildrenCollapsible(false);
     splitter->setStretchFactor(0, 0);
@@ -1098,6 +1120,7 @@ void MainWindow::setupMenuBar()
     menu->addAction(appAction(AppActions::Preview));
     menu->addAction(appAction(AppActions::HemingwayMode));
     menu->addAction(appAction(AppActions::DarkMode));
+    menu->addAction(appAction(AppActions::ShowMascot));
     menu->addSeparator();
     menu->addAction(appAction(AppActions::ShowSidebar));
     menu->addAction(appAction(AppActions::ShowOutline));
@@ -1463,6 +1486,10 @@ void MainWindow::applyTheme()
         qCritical() << "Invalid HTML preview style sheet provided.";
     } else {
         htmlPreview->setStyleSheet(styler.htmlPreviewStyleSheet());
+    }
+
+    if (nullptr != mascot) {
+        mascot->setDarkMode(appSettings->darkModeEnabled());
     }
 
     adjustEditor();

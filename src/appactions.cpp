@@ -230,6 +230,9 @@ AppActions::AppActions(KActionCollection *collection, SvgIconTheme *iconTheme, Q
            "<p>If the current theme does not support a dark "
            "color scheme, then this option will have no effect.</p>"));
 
+    action = d->addCheckAction(ShowMascot, "view_show_mascot", tr("Show Mascot"));
+    action->setToolTip(tr("Shows or hides the moogle in the corner of the editor."));
+
     d->addCheckAction(ShowSidebar, "view_sidebar", tr("Show Sidebar"), "show-sidebar", tr("CTRL+Space"));
 
     action = d->addAction(ShowOutline, "view_outline", tr("Outline"), "outline", tr("CTRL+J"));

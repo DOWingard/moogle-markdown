@@ -151,6 +151,9 @@ public:
     bool sidebarVisible() const;
     void setSidebarVisible(bool visible);
 
+    bool mascotVisible() const;
+    void setMascotVisible(bool visible);
+
     Exporter *currentHtmlExporter() const;
     Q_SLOT void setCurrentHtmlExporter(Exporter *exporter);
     Q_SIGNAL void currentHtmlExporterChanged(Exporter *exporter);
