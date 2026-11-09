@@ -59,6 +59,18 @@ Then:
 
 The executable is `build/bin/moogle`.
 
+To install for your user only (no root), set the prefix to `~/.local` and refresh the
+launcher caches:
+
+    cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+    cmake --build build && cmake --install build
+    update-desktop-database ~/.local/share/applications
+    kbuildsycoca6    # KDE Plasma only
+
+The desktop entry uses the absolute path of the installed binary, so the menu entry
+works even when `~/.local/bin` is not on the session's `PATH`. Re-run the build and
+install commands to update.
+
 ## Usage
 
     moogle [--disable-gpu] [file.md]
