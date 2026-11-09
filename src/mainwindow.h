@@ -8,7 +8,10 @@
 #ifndef MAIN_WINDOW_H
 #define MAIN_WINDOW_H
 
+#include <functional>
+
 #include <QAction>
+#include <QJsonObject>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMap>
@@ -25,6 +28,7 @@
 
 #include "moogle/mascotwidget.h"
 #include "preview/htmlpreview.h"
+#include "preview/renderedview.h"
 #include "settings/appsettings.h"
 #include "spelling/spellcheckdecorator.h"
 #include "statistics/documentstatistics.h"
@@ -98,6 +102,7 @@ private slots:
     void onSidebarVisibilityChanged(bool visible);
     void toggleSidebarVisible(bool visible);
     void runSpellCheck();
+    void toggleRenderedView();
 
 private:
     MarkdownEditor *editor;
@@ -116,7 +121,11 @@ private:
     HtmlPreview *htmlPreview;
     QWidget *editorPane;
     QStackedLayout *editorStack;
+    RenderedView *renderedView = nullptr;
     MascotWidget *mascot = nullptr;
+    bool renderedViewActive = false;
+    bool paneSwapInProgress = false;
+    int rawScrollValue = 0;
     FolderViewWidget *folderViewWidget = nullptr;
     OutlineWidget *outlineWidget;
     DocumentStatistics *documentStats;
@@ -156,6 +165,17 @@ private:
     void setupSidebar();
 
     void adjustEditor();
+
+    // In-place raw/rendered swap of the editor pane.
+    void ensureRenderedView();
+    void showRenderedView();
+    void showRawView(std::function<void()> then = nullptr);
+    void refreshRenderedView();
+    void runInRawView(std::function<void()> fn);
+    QJsonObject captureEditorState() const;
+    void applyEditorState(const QJsonObject &state);
+    void updateActionsForPaneMode();
+    void showTransientStatus(const QString &message);
 };
 } // namespace ghostwriter
 

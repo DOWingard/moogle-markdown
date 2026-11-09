@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -17,20 +18,25 @@
 #include <QIODevice>
 #include <QIcon>
 #include <QImageReader>
+#include <QJsonArray>
 #include <QLabel>
 #include <QLocale>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeDatabase>
 #include <QMimeType>
+#include <QPointer>
 #include <QPushButton>
 #include <QScrollBar>
 #include <QSettings>
 #include <QSizePolicy>
 #include <QStatusBar>
 #include <QStyleFactory>
+#include <QTextBlock>
 #include <QTextDocumentFragment>
+#include <QTimer>
 #include <QToolButton>
+#include <QWebEnginePage>
 #include <QWhatsThis>
 
 #include <KAboutData>
@@ -298,6 +304,11 @@ void MainWindow::quitApplication()
         this->editor->document()->disconnect();
         this->editor->disconnect();
         this->htmlPreview->disconnect();
+
+        if (nullptr != renderedView) {
+            renderedView->disconnect();
+        }
+
         StyleSheetBuilder::clearCache();
 
         qApp->quit();
@@ -327,6 +338,15 @@ void MainWindow::openPreferencesDialog()
 
 void MainWindow::toggleHtmlPreview(bool checked)
 {
+    // The live preview and the in-place rendered view are alternatives; go
+    // back to raw Markdown (keeping position) before showing the preview.
+    if (checked && renderedViewActive) {
+        showRawView([this]() {
+            toggleHtmlPreview(true);
+        });
+        return;
+    }
+
     htmlPreview->setVisible(checked);
     htmlPreview->updatePreview();
     appSettings->setHtmlPreviewVisible(checked);
@@ -786,18 +806,58 @@ void MainWindow::setupActions()
     m_actions->connect(AppActions::Undo, editor, &MarkdownEditor::undo);
     m_actions->connect(AppActions::Redo, editor, &MarkdownEditor::redo);
     m_actions->connect(AppActions::Cut, editor, &MarkdownEditor::cut);
-    m_actions->connect(AppActions::Copy, editor, &MarkdownEditor::copy);
+    m_actions->connect(AppActions::Copy, this, [this]() {
+        if (renderedViewActive) {
+            renderedView->triggerPageAction(QWebEnginePage::Copy);
+        } else {
+            editor->copy();
+        }
+    });
     m_actions->connect(AppActions::Paste, editor, &MarkdownEditor::paste);
     m_actions->connect(AppActions::CopyHTML, this, &MainWindow::copyHtml);
-    m_actions->connect(AppActions::SelectAll, editor, &MarkdownEditor::selectAll);
-    m_actions->connect(AppActions::Deselect, editor, &MarkdownEditor::deselectText);
+    m_actions->connect(AppActions::SelectAll, this, [this]() {
+        if (renderedViewActive) {
+            renderedView->triggerPageAction(QWebEnginePage::SelectAll);
+        } else {
+            editor->selectAll();
+        }
+    });
+    m_actions->connect(AppActions::Deselect, this, [this]() {
+        if (renderedViewActive) {
+            renderedView->triggerPageAction(QWebEnginePage::Unselect);
+        } else {
+            editor->deselectText();
+        }
+    });
     m_actions->connect(AppActions::InsertImage, editor, &MarkdownEditor::insertImage);
     // TODO: add Deselect method to editor.
-    m_actions->connect(AppActions::Find, findReplace, &FindReplace::showFindView);
-    m_actions->connect(AppActions::Replace, findReplace, &FindReplace::showReplaceView);
-    m_actions->connect(AppActions::FindNext, findReplace, &FindReplace::findNext);
-    m_actions->connect(AppActions::FindPrev, findReplace, &FindReplace::findPrevious);
-    m_actions->connect(AppActions::Spelling, this, &MainWindow::runSpellCheck);
+    // Find, replace and spell check operate on the Markdown source, so they
+    // swap back to the raw view first.
+    m_actions->connect(AppActions::Find, this, [this]() {
+        runInRawView([this]() {
+            findReplace->showFindView();
+        });
+    });
+    m_actions->connect(AppActions::Replace, this, [this]() {
+        runInRawView([this]() {
+            findReplace->showReplaceView();
+        });
+    });
+    m_actions->connect(AppActions::FindNext, this, [this]() {
+        runInRawView([this]() {
+            findReplace->findNext();
+        });
+    });
+    m_actions->connect(AppActions::FindPrev, this, [this]() {
+        runInRawView([this]() {
+            findReplace->findPrevious();
+        });
+    });
+    m_actions->connect(AppActions::Spelling, this, [this]() {
+        runInRawView([this]() {
+            runSpellCheck();
+        });
+    });
 
     // Format Menu Actions
 
@@ -826,6 +886,7 @@ void MainWindow::setupActions()
     m_actions->connect(AppActions::DistractionFreeMode, this, &MainWindow::toggleFocusMode);
     appAction(AppActions::Preview)->setChecked(appSettings->htmlPreviewVisible());
     m_actions->connect(AppActions::Preview, this, &MainWindow::toggleHtmlPreview);
+    m_actions->connect(AppActions::ToggleRenderedView, this, &MainWindow::toggleRenderedView);
     appAction(AppActions::ShowMascot)->setChecked(appSettings->mascotVisible());
     m_actions->connect(AppActions::ShowMascot, this, [this](bool checked) {
         appSettings->setMascotVisible(checked);
@@ -985,7 +1046,8 @@ void MainWindow::setupGui()
         adjustSize();
     }
 
-    // The editor lives in a pane so overlays (the mascot) can sit on top.
+    // The editor shares its pane with the in-place rendered view (created on
+    // first use) and the mascot overlay.
     editorPane = new QWidget(this);
     editorPane->setObjectName("editorPane");
     editorStack = new QStackedLayout(editorPane);
@@ -995,6 +1057,14 @@ void MainWindow::setupGui()
     mascot = new MascotWidget(editorPane);
     mascot->setDarkMode(appSettings->darkModeEnabled());
     mascot->setEnabledByUser(appSettings->mascotVisible());
+
+    connect(outlineWidget, &OutlineWidget::headingNumberNavigated, this, [this](int headingNumber) {
+        if (renderedViewActive) {
+            renderedView->navigateToHeading(headingNumber);
+        }
+    });
+    connect(documentManager, &DocumentManager::documentLoaded, this, &MainWindow::refreshRenderedView);
+    connect(documentManager, &DocumentManager::documentClosed, this, &MainWindow::refreshRenderedView);
 
     splitter = new QSplitter(this);
     splitter->addWidget(sidebar);
@@ -1118,6 +1188,7 @@ void MainWindow::setupMenuBar()
     menu->addAction(appAction(AppActions::FullScreen));
     menu->addAction(appAction(AppActions::DistractionFreeMode));
     menu->addAction(appAction(AppActions::Preview));
+    menu->addAction(appAction(AppActions::ToggleRenderedView));
     menu->addAction(appAction(AppActions::HemingwayMode));
     menu->addAction(appAction(AppActions::DarkMode));
     menu->addAction(appAction(AppActions::ShowMascot));
@@ -1485,7 +1556,11 @@ void MainWindow::applyTheme()
     if (styleSheet.isNull()) {
         qCritical() << "Invalid HTML preview style sheet provided.";
     } else {
-        htmlPreview->setStyleSheet(styler.htmlPreviewStyleSheet());
+        htmlPreview->setStyleSheet(styleSheet);
+
+        if (nullptr != renderedView) {
+            renderedView->setPreviewStyleSheet(styleSheet);
+        }
     }
 
     if (nullptr != mascot) {
@@ -1501,6 +1576,316 @@ void MainWindow::runSpellCheck()
     connect(dialog, &SpellCheckDialog::finished, spelling, &SpellCheckDecorator::rehighlight);
 
     dialog->show();
+}
+
+namespace
+{
+const QString kSwapContext = QStringLiteral("paneswap");
+constexpr int kTransientStatusMs = 3500;
+} // namespace
+
+void MainWindow::toggleRenderedView()
+{
+    if (paneSwapInProgress) {
+        logEvent(LogLevel::Debug, kSwapContext, QStringLiteral("swap ignored: another swap is in progress"));
+        return;
+    }
+
+    if (!renderedViewActive && appSettings->htmlPreviewVisible()) {
+        logEvent(LogLevel::Info, kSwapContext, QStringLiteral("swap refused: live preview is on"));
+        showTransientStatus(tr("Ctrl+Shift+V swaps raw/rendered when Live Preview is off (Ctrl+P)"));
+        return;
+    }
+
+    if (renderedViewActive) {
+        showRawView();
+    } else {
+        showRenderedView();
+    }
+}
+
+void MainWindow::ensureRenderedView()
+{
+    if (nullptr != renderedView) {
+        return;
+    }
+
+    ScopedTiming timing(kSwapContext, QStringLiteral("create rendered view"), 200);
+
+    renderedView = new RenderedView(documentManager->document(), editorPane);
+    renderedView->setMinimumWidth(0);
+    editorStack->addWidget(renderedView);
+
+    // Adding a widget must not change which one is current or on top.
+    editorStack->setCurrentWidget(editor);
+    mascot->raise();
+
+    connect(renderedView, &RenderedView::toggleRequested, this, &MainWindow::toggleRenderedView);
+
+    ChromeColors chromeColors(appSettings->darkModeEnabled() ? theme.darkColorScheme() : theme.lightColorScheme());
+    StyleSheetBuilder styler(chromeColors,
+                             secondaryIconTheme,
+                             (InterfaceStyleRounded == appSettings->interfaceStyle()),
+                             appSettings->editorFont(),
+                             appSettings->previewTextFont(),
+                             appSettings->previewCodeFont());
+    const QString css = styler.htmlPreviewStyleSheet();
+
+    if (css.isNull()) {
+        logEvent(LogLevel::Error, kSwapContext, QStringLiteral("rendered view style sheet unavailable; using browser defaults"));
+    } else {
+        renderedView->setPreviewStyleSheet(css);
+    }
+
+    logEvent(LogLevel::Info, kSwapContext, QStringLiteral("rendered view created"));
+}
+
+QJsonObject MainWindow::captureEditorState() const
+{
+    QJsonObject state;
+    const QTextCursor cursor = editor->textCursor();
+
+    state.insert("selection", QJsonObject{{"anchor", cursor.anchor()}, {"focus", cursor.position()}});
+
+    // QPlainTextEdit scrolls by visual line: the scroll bar value is the
+    // index of the first visible (wrapped) line.
+    const int topLine = editor->verticalScrollBar()->value();
+    const QTextBlock top = editor->document()->findBlockByLineNumber(topLine);
+
+    if (top.isValid()) {
+        const int lines = qMax(1, top.lineCount());
+        const double fraction = qBound(0.0, double(topLine - top.firstLineNumber()) / lines, 0.999);
+        state.insert("scroll", QJsonObject{{"offset", top.position()}, {"fraction", fraction}});
+    }
+
+    // Line the rendered text column up with the editor's text column.
+    if (nullptr != renderedView && renderedView->zoomFactor() > 0) {
+        state.insert("contentWidth", editor->viewport()->width() / renderedView->zoomFactor());
+    }
+
+    return state;
+}
+
+void MainWindow::applyEditorState(const QJsonObject &state)
+{
+    QTextDocument *doc = editor->document();
+    const int maxPos = qMax(0, doc->characterCount() - 1);
+    QJsonObject applied;
+
+    if (state.contains("selection")) {
+        const QJsonObject sel = state.value("selection").toObject();
+        const int anchor = qBound(0, sel.value("anchor").toInt(), maxPos);
+        const int focus = qBound(0, sel.value("focus").toInt(), maxPos);
+        QTextCursor cursor(doc);
+
+        cursor.setPosition(anchor);
+        cursor.setPosition(focus, QTextCursor::KeepAnchor);
+        editor->setTextCursor(cursor);
+        applied.insert("anchor", anchor);
+        applied.insert("focus", focus);
+    }
+
+    int targetLine = rawScrollValue;
+
+    if (state.contains("scroll")) {
+        const QJsonObject scroll = state.value("scroll").toObject();
+        const QTextBlock block = doc->findBlock(qBound(0, scroll.value("offset").toInt(), maxPos));
+
+        if (block.isValid()) {
+            // Lay the block out so its wrapped line count is current.
+            doc->documentLayout()->blockBoundingRect(block);
+            const int lines = qMax(1, block.lineCount());
+            const int lineInBlock = qBound(0, int(scroll.value("fraction").toDouble() * lines), lines - 1);
+            targetLine = block.firstLineNumber() + lineInBlock;
+        } else {
+            logEvent(LogLevel::Warn,
+                     kSwapContext,
+                     QStringLiteral("scroll anchor outside document; keeping previous scroll"),
+                     {{"offset", scroll.value("offset")}, {"maxPos", maxPos}});
+        }
+    }
+
+    // Set after the cursor: setTextCursor() may have scrolled to reveal it.
+    editor->verticalScrollBar()->setValue(targetLine);
+    applied.insert("topLine", targetLine);
+    applied.insert("scrollFromRendered", state.contains("scroll"));
+    applied.insert("selectionFromRendered", state.contains("selection"));
+    logEvent(LogLevel::Debug, kSwapContext, QStringLiteral("editor state applied"), applied);
+
+    // Cursor-follow logic can re-centre on the next event loop pass; win.
+    QPointer<MarkdownEditor> guard(editor);
+    QTimer::singleShot(0, this, [guard, targetLine]() {
+        if (guard && guard->verticalScrollBar()->value() != targetLine) {
+            logEvent(LogLevel::Debug,
+                     kSwapContext,
+                     QStringLiteral("re-applying editor scroll after deferred re-centre"),
+                     {{"was", guard->verticalScrollBar()->value()}, {"target", targetLine}});
+            guard->verticalScrollBar()->setValue(targetLine);
+        }
+    });
+}
+
+void MainWindow::showRenderedView()
+{
+    ensureRenderedView();
+
+    QElapsedTimer timer;
+    timer.start();
+
+    const QJsonObject state = captureEditorState();
+    rawScrollValue = editor->verticalScrollBar()->value();
+    paneSwapInProgress = true;
+
+    // Lay the rendered view out underneath the editor so it can render and
+    // position itself at the right size before it is revealed.
+    editorStack->setStackingMode(QStackedLayout::StackAll);
+    editorStack->setGeometry(editorPane->contentsRect());
+    editor->raise();
+    mascot->raise();
+
+    logEvent(LogLevel::Info,
+             kSwapContext,
+             QStringLiteral("swapping to rendered view"),
+             {{"selection", state.value("selection")}, {"scroll", state.value("scroll")}, {"chars", editor->document()->characterCount()}});
+
+    QPointer<MainWindow> self(this);
+    renderedView->present(state, [self, timer](bool positioned) {
+        if (!self) {
+            return;
+        }
+
+        self->editorStack->setCurrentWidget(self->renderedView);
+        self->editorStack->setStackingMode(QStackedLayout::StackOne);
+        self->renderedViewActive = true;
+        self->paneSwapInProgress = false;
+        self->renderedView->setFocus();
+        self->mascot->raise();
+        self->updateActionsForPaneMode();
+
+        logEvent(positioned ? LogLevel::Info : LogLevel::Warn,
+                 kSwapContext,
+                 positioned ? QStringLiteral("rendered view shown") : QStringLiteral("rendered view shown before positioning completed"),
+                 {{"positioned", positioned}, {"durationMs", timer.elapsed()}});
+    });
+}
+
+void MainWindow::showRawView(std::function<void()> then)
+{
+    if (!renderedViewActive || nullptr == renderedView) {
+        if (then) {
+            then();
+        }
+
+        return;
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+    paneSwapInProgress = true;
+    logEvent(LogLevel::Info, kSwapContext, QStringLiteral("swapping to raw view"));
+
+    QPointer<MainWindow> self(this);
+    renderedView->capture([self, then, timer](const QJsonObject &state) {
+        if (!self) {
+            return;
+        }
+
+        self->editorStack->setCurrentWidget(self->editor);
+        // The editor may have missed resizes while hidden; size it now so
+        // wrapping (and thus line-based scrolling) is computed correctly.
+        self->editorStack->setGeometry(self->editorPane->contentsRect());
+        self->applyEditorState(state);
+        self->renderedViewActive = false;
+        self->paneSwapInProgress = false;
+        self->editor->setFocus();
+        self->mascot->raise();
+        self->updateActionsForPaneMode();
+
+        logEvent(LogLevel::Info,
+                 kSwapContext,
+                 QStringLiteral("raw view shown"),
+                 {{"durationMs", timer.elapsed()}, {"capturedKeys", QJsonArray::fromStringList(state.keys())}});
+
+        if (then) {
+            then();
+        }
+    });
+}
+
+void MainWindow::refreshRenderedView()
+{
+    if (!renderedViewActive || nullptr == renderedView) {
+        return;
+    }
+
+    // A different document (or a reload) while rendered: show it at the
+    // editor's restored position.
+    logEvent(LogLevel::Info, kSwapContext, QStringLiteral("refreshing rendered view for new document"));
+    renderedView->present(captureEditorState(), [](bool positioned) {
+        if (!positioned) {
+            logEvent(LogLevel::Warn, kSwapContext, QStringLiteral("rendered view refresh did not finish positioning"));
+        }
+    });
+}
+
+void MainWindow::runInRawView(std::function<void()> fn)
+{
+    if (renderedViewActive) {
+        showRawView(std::move(fn));
+    } else {
+        fn();
+    }
+}
+
+void MainWindow::updateActionsForPaneMode()
+{
+    // Actions that would silently edit the hidden Markdown source.
+    static const AppActions::ActionType editingActions[] = {
+        AppActions::Undo,
+        AppActions::Redo,
+        AppActions::Cut,
+        AppActions::Paste,
+        AppActions::InsertImage,
+        AppActions::Strong,
+        AppActions::Emphasis,
+        AppActions::Strikethrough,
+        AppActions::InsertHTMLComment,
+        AppActions::IndentText,
+        AppActions::UnindentText,
+        AppActions::CodeFences,
+        AppActions::BlockQuote,
+        AppActions::StripBlockQuote,
+        AppActions::BulletListAsterisk,
+        AppActions::BulletListMinus,
+        AppActions::BulletListPlus,
+        AppActions::NumberedListPeriod,
+        AppActions::NumberedListParenthesis,
+        AppActions::TaskList,
+        AppActions::TaskComplete,
+    };
+
+    for (const auto type : editingActions) {
+        if (QAction *action = appAction(type)) {
+            action->setEnabled(!renderedViewActive);
+        }
+    }
+}
+
+void MainWindow::showTransientStatus(const QString &message)
+{
+    statusIndicator->setText(message);
+    statisticsIndicator->hide();
+    statusIndicator->show();
+
+    QPointer<MainWindow> self(this);
+    QTimer::singleShot(kTransientStatusMs, this, [self, message]() {
+        // Leave it alone if an operation has since replaced the message.
+        if (self && self->statusIndicator->text() == message) {
+            self->statusIndicator->setText(QString());
+            self->statusIndicator->hide();
+            self->statisticsIndicator->show();
+        }
+    });
 }
 
 } // namespace ghostwriter

@@ -41,6 +41,7 @@ target_sources(moogle PRIVATE
     moogle/mascotwidget.cpp
     moogle/structuredlog.cpp
     preview/previewproxy.cpp
+    preview/renderedview.cpp
     preview/sandboxedwebpage.cpp
     settings/appsettings.cpp
     settings/localedialog.cpp

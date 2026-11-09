@@ -2,6 +2,8 @@
     <qresource prefix="/">
         <file>resources/preview.css</file>
         <file>resources/preview.html</file>
+        <file>resources/renderedview.html</file>
+        <file>resources/renderedview.js</file>
         <file>resources/mascot/moogle-light.png</file>
         <file>resources/mascot/moogle-dark.png</file>
         <file>resources/widgets.qss</file>

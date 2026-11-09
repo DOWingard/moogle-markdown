@@ -96,6 +96,7 @@ public:
         FullScreen,
         DistractionFreeMode,
         Preview,
+        ToggleRenderedView,
         HemingwayMode,
         DarkMode,
         ShowMascot,

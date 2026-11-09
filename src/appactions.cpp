@@ -217,6 +217,13 @@ AppActions::AppActions(KActionCollection *collection, SvgIconTheme *iconTheme, Q
 
     d->addCheckAction(Preview, "view_preview", tr("Live Preview"), "live-preview", tr("CTRL+P"));
 
+    action = d->addAction(ToggleRenderedView, "view_toggle_rendered", tr("Swap Raw/Rendered View"), NO_ICON, tr("CTRL+SHIFT+V"));
+    action->setToolTip(tr("Swaps the editor between raw Markdown and the rendered document."));
+    action->setWhatsThis(
+        tr("<p>Swaps the editor in place between raw Markdown and the rendered "
+           "document, keeping the scroll position, cursor and selection.</p>"
+           "<p>Available while Live Preview is off.</p>"));
+
     action = d->addCheckAction(HemingwayMode, "view_hemingway_mode", tr("Hemingway Mode"), "hemingway-mode", tr("SHIFT+Backspace"));
     action->setToolTip(tr("Toggles Hemingway mode."));
     action->setWhatsThis(
