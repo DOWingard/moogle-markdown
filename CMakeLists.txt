@@ -125,8 +125,17 @@ ecm_install_icons(
     THEME hicolor
 )
 
+# Absolute Exec path: launchers often run with a PATH that lacks the install
+# prefix's bin directory (e.g. ~/.local/bin for per-user installs).
+set(MOOGLE_BIN "${KDE_INSTALL_FULL_BINDIR}/moogle")
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/linux/moogle.desktop.in
+    ${CMAKE_CURRENT_BINARY_DIR}/moogle.desktop
+    @ONLY
+)
+
 install(
-    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/resources/linux/moogle.desktop
+    PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/moogle.desktop
     DESTINATION ${KDE_INSTALL_APPDIR}
 )
 
