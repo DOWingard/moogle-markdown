@@ -1,7 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>resources/icons/kdeapp.svg</file>
-        <file>resources/icons/sc-apps-ghostwriter.svg</file>
+        <file>resources/icons/sc-apps-moogle.svg</file>
         <file>icons/block-quote.svg</file>
         <file>icons/bug-report.svg</file>
         <file>icons/cheat-sheet.svg</file>

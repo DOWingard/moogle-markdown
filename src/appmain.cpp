@@ -85,20 +85,26 @@ int main(int argc, char *argv[])
     qApp->installEventFilter(KToolTipHelper::instance());
 
 #if defined(Q_OS_LINUX)
-    QGuiApplication::setDesktopFileName("ghostwriter");
+    QGuiApplication::setDesktopFileName("moogle");
 #endif
 
-    KAboutData aboutData("ghostwriter",
-                    QCoreApplication::translate("main", "ghostwriter"),
-                    APPVERSION);
+    KAboutData aboutData("moogle", QCoreApplication::translate("main", "moogle"), APPVERSION);
 
-    aboutData.setOrganizationDomain("kde.org");
-    aboutData.setShortDescription(QCoreApplication::translate("main",
-        "A markdown editor"));
+    // ".local" is reserved and never resolves publicly, so it cannot collide
+    // with a real organization's settings or bundle identifiers.
+    aboutData.setOrganizationDomain("moogle.local");
+    aboutData.setShortDescription(QCoreApplication::translate("main", "moogle markdown: a Markdown editor, kupo!"));
 
     aboutData.setOtherText("<img src=\":/resources/banner.png\">");
-    aboutData.addAuthor("Megan Conkle", "Developer",
-        "megan.conkle@kdemail.net");
+    aboutData.addAuthor("Megan Conkle", QCoreApplication::translate("main", "Original ghostwriter developer"), "megan.conkle@kdemail.net");
+    aboutData.addCredit("Zerox",
+                        QCoreApplication::translate("main", "Ripped the XIII Moogle model (Kingdom Hearts 358/2 Days) used for the dark mode mascot"),
+                        QString(),
+                        "https://www.spriters-resource.com");
+    aboutData.addCredit(QCoreApplication::translate("main", "The Models Resource"),
+                        QCoreApplication::translate("main", "Source of the Kingdom Hearts (PS2) Moogle model used for the light mode mascot"),
+                        QString(),
+                        "https://models.spriters-resource.com");
     aboutData.addCredit("Graeme Gott",
         QCoreApplication::translate("main",
             "FocusWriter developer, whose Qt code mentored me"),
@@ -137,10 +143,11 @@ int main(int argc, char *argv[])
         "https://www.mathjax.org/");
     aboutData.setLicense(KAboutLicense::GPL_V3);
     aboutData.setCopyrightStatement(QCoreApplication::translate("main",
-        "Copyright 2014-%1 The ghostwriter team")
-            .arg(QDateTime::currentDateTime().date().year()));
-    aboutData.setHomepage("https://ghostwriter.kde.org");
-    aboutData.setDesktopFileName("org.kde.ghostwriter");
+                                                                "Copyright 2014-%1 The ghostwriter team and moogle contributors.\n"
+                                                                "Moogle is a character owned by Square Enix; this project is not affiliated with Square Enix.")
+                                        .arg(QDateTime::currentDateTime().date().year()));
+    aboutData.setHomepage("https://github.com/KDE/ghostwriter");
+    aboutData.setDesktopFileName("moogle");
 
     // Set the application metadata.
     KAboutData::setApplicationData(aboutData);
@@ -154,8 +161,7 @@ int main(int argc, char *argv[])
 
     QCommandLineParser clParser;
     aboutData.setupCommandLine(&clParser);
-    clParser.setApplicationDescription(QCoreApplication::translate("main",
-        "Welcome to ghostwriter!"));
+    clParser.setApplicationDescription(QCoreApplication::translate("main", "Welcome to moogle, kupo!"));
     clParser.addPositionalArgument("file",
         QCoreApplication::translate("main", "(Optional) File to open."));
 
@@ -168,7 +174,16 @@ int main(int argc, char *argv[])
 
     QStringList posArgs = clParser.positionalArguments();
 
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("ghostwriter")));
+    // Prefer the bundled mascot icon so the window icon is correct even when
+    // the application has not been installed into the system icon theme.
+    QIcon appIcon(QStringLiteral(":/resources/icons/sc-apps-moogle.svg"));
+
+    if (appIcon.isNull()) {
+        qWarning().noquote() << R"({"context":"appmain","message":"bundled app icon missing, falling back to icon theme"})";
+        appIcon = QIcon::fromTheme(QStringLiteral("moogle"));
+    }
+
+    app.setWindowIcon(appIcon);
 
     if (posArgs.size() > 0) {
         filePath = posArgs.first();

@@ -268,7 +268,7 @@ AppActions::AppActions(KActionCollection *collection, SvgIconTheme *iconTheme, Q
     d->addAction(Donate, KStandardAction::Donate, "donate");
 
     action = d->addAction(AboutApp, KStandardAction::AboutApp);
-    action->setIcon(QIcon(":/resources/icons/sc-apps-ghostwriter.svg"));
+    action->setIcon(QIcon(":/resources/icons/sc-apps-moogle.svg"));
     action->setMenuRole(QAction::AboutRole);
 
     action = d->addAction(AboutKDE, KStandardAction::AboutKDE);

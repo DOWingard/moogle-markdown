@@ -1,4 +1,4 @@
-﻿# SPDX-FileCopyrightText: 2022-2024 Megan Conkle <megan.conkle@kdemail.net>
+# SPDX-FileCopyrightText: 2022-2024 Megan Conkle <megan.conkle@kdemail.net>
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -36,7 +36,7 @@ set(RELEASE_SERVICE_VERSION_MINOR "03")
 set(RELEASE_SERVICE_VERSION_MICRO "70")
 set(RELEASE_SERVICE_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}.${RELEASE_SERVICE_VERSION_MICRO}")
 
-project(ghostwriter VERSION ${RELEASE_SERVICE_VERSION} LANGUAGES CXX)
+project(moogle VERSION ${RELEASE_SERVICE_VERSION} LANGUAGES CXX)
 
 find_package(ECM ${KF_MIN_VERSION} REQUIRED NO_MODULE)
 
@@ -67,36 +67,30 @@ if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/poqm")
     ecm_install_po_files_as_qm(poqm)
 endif()
 
-find_package(KF${KF_MAJOR_VERSION}DocTools ${KF_MIN_VERSION})
-set_package_properties(KF${KF_MAJOR_VERSION}DocTools PROPERTIES DESCRIPTION
-    "Tools to generate documentation"
-    TYPE OPTIONAL
-)
 
 set(CMARK_TESTS OFF)
 add_subdirectory(3rdparty/cmark-gfm EXCLUDE_FROM_ALL)
 add_subdirectory(src)
 
-if(KF${QT_MAJOR_VERSION}DocTools_FOUND)
-    kdoctools_install(po)
-    add_subdirectory(doc)
-endif()
+# The upstream handbook and man page describe ghostwriter, so they are not
+# built or installed for moogle.
 
 # Add icon files to the application's source files to have CMake bundle them in the executable.
 set(ICONS_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/resources/icons)
 
 set(ICON_FILES
-    ${ICONS_FOLDER}/sc-apps-ghostwriter.svg
-    ${ICONS_FOLDER}/16-apps-ghostwriter.png
-    ${ICONS_FOLDER}/22-apps-ghostwriter.png
-    ${ICONS_FOLDER}/32-apps-ghostwriter.png
-    ${ICONS_FOLDER}/64-apps-ghostwriter.png
-    ${ICONS_FOLDER}/128-apps-ghostwriter.png
-    ${ICONS_FOLDER}/256-apps-ghostwriter.png
+    ${ICONS_FOLDER}/sc-apps-moogle.svg
+    ${ICONS_FOLDER}/16-apps-moogle.png
+    ${ICONS_FOLDER}/22-apps-moogle.png
+    ${ICONS_FOLDER}/32-apps-moogle.png
+    ${ICONS_FOLDER}/48-apps-moogle.png
+    ${ICONS_FOLDER}/64-apps-moogle.png
+    ${ICONS_FOLDER}/128-apps-moogle.png
+    ${ICONS_FOLDER}/256-apps-moogle.png
 )
 
 ecm_add_app_icon(ICONS_SOURCES ICONS ${ICON_FILES})
-target_sources(ghostwriter PRIVATE ${ICONS_SOURCES})
+target_sources(moogle PRIVATE ${ICONS_SOURCES})
 
 if(BUILD_TESTING)
    add_subdirectory(autotest)
@@ -108,23 +102,22 @@ if(APPLE)
     string(TIMESTAMP CURRENT_YEAR "%Y")
 
     set_property(
-        TARGET ghostwriter
+        TARGET moogle
         PROPERTY MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/mac/MacOSBundleInfo.plist.in
     )
 
     # These are substituted by CMake into MacOSBundleInfo.plist.in.
-    set(MACOSX_BUNDLE_DISPLAY_NAME "ghostwriter")
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.kde.ghostwriter")
-    set(MACOSX_BUNDLE_BUNDLE_NAME "ghostwriter")
-    set(MACOSX_BUNDLE_DISPLAY_NAME "ghostwriter")
-    set(MACOSX_BUNDLE_INFO_STRING "ghostwriter - A Markdown Editor")
-    set(MACOSX_BUNDLE_LONG_VERSION_STRING "ghostwriter ${RELEASE_SERVICE_VERSION}")
+    set(MACOSX_BUNDLE_DISPLAY_NAME "moogle")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "local.moogle.markdown")
+    set(MACOSX_BUNDLE_BUNDLE_NAME "moogle")
+    set(MACOSX_BUNDLE_INFO_STRING "moogle - A Markdown Editor")
+    set(MACOSX_BUNDLE_LONG_VERSION_STRING "moogle ${RELEASE_SERVICE_VERSION}")
     set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}")
     set(MACOSX_BUNDLE_BUNDLE_VERSION "${RELEASE_SERVICE_VERSION}")
-    set(MACOSX_BUNDLE_COPYRIGHT "2014-${CURRENT_YEAR} the ghostwriter authors")
+    set(MACOSX_BUNDLE_COPYRIGHT "2014-${CURRENT_YEAR} the ghostwriter authors and moogle contributors")
 endif()
 
-install(TARGETS ghostwriter ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS moogle ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
 ecm_install_icons(
     ICONS ${ICON_FILES}
@@ -133,12 +126,12 @@ ecm_install_icons(
 )
 
 install(
-    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/resources/linux/org.kde.ghostwriter.desktop
+    PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/resources/linux/moogle.desktop
     DESTINATION ${KDE_INSTALL_APPDIR}
 )
 
 install(
-    FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/linux/org.kde.ghostwriter.metainfo.xml
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/resources/linux/moogle.metainfo.xml
     DESTINATION ${KDE_INSTALL_METAINFODIR}
 )
 

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=moogle
+GenericName=Markdown Editor
+Comment=moogle markdown: a distraction-free Markdown editor, kupo!
+Icon=moogle
+TryExec=moogle
+Exec=moogle %f
+Terminal=false
+MimeType=text/plain;text/markdown;text/x-markdown;
+Categories=Qt;Office;WordProcessor;
+Keywords=Markdown;editor;document;fullscreen;distraction;concentration;focused;writing;moogle;
+StartupWMClass=moogle

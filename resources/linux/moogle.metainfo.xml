@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+SPDX-License-Identifier: CC0-1.0
+-->
+<component type="desktop-application">
+  <id>moogle</id>
+  <launchable type="desktop-id">moogle.desktop</launchable>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>moogle</name>
+  <summary>moogle markdown: a distraction-free Markdown editor</summary>
+  <description>
+    <p>
+      moogle is a Markdown editor based on KDE's ghostwriter. It keeps ghostwriter's
+      distraction-free writing environment, live preview, themes and export options, and adds
+      an in-place rendered view (Ctrl+Shift+V) that keeps scroll position, cursor and selection
+      when swapping between raw Markdown and the rendered document.
+    </p>
+  </description>
+  <provides>
+    <binary>moogle</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+</component>

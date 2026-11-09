@@ -7,20 +7,20 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(UI_FILES settings/preferencesdialog.ui)
 
-add_executable(ghostwriter ../resources.qrc ../icons.qrc ${UI_FILES})
+add_executable(moogle ../resources.qrc ../icons.qrc ${UI_FILES})
 
-target_compile_definitions(ghostwriter PRIVATE APPVERSION="${RELEASE_SERVICE_VERSION}")
+target_compile_definitions(moogle PRIVATE APPVERSION="${RELEASE_SERVICE_VERSION}")
 
-target_include_directories(ghostwriter PUBLIC
+target_include_directories(moogle PUBLIC
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}/../3rdparty/cmark-gfm/src"
 )
 
-ecm_create_qm_loader(ghostwriter_QM_LOADER ghostwriter_qt)
+ecm_create_qm_loader(moogle_QM_LOADER moogle_qt)
 
-target_sources(ghostwriter PRIVATE
+target_sources(moogle PRIVATE
     editor/actions/inlinemarkuptoggle.cpp
     editor/asynctextwriter.cpp
     editor/markdowndocument.cpp
@@ -74,7 +74,7 @@ target_sources(ghostwriter PRIVATE
     outlinewidget.cpp
     sidebar.cpp
     timelabel.cpp
-    ${ghostwriter_QM_LOADER}
+    ${moogle_QM_LOADER}
 )
 
 
@@ -113,7 +113,7 @@ else()
     )
 endif()
 
-target_link_libraries(ghostwriter PRIVATE
+target_link_libraries(moogle PRIVATE
     Qt::Concurrent
     Qt::Core
     Qt::Gui
@@ -130,7 +130,7 @@ target_link_libraries(ghostwriter PRIVATE
     ${CMARK_LIBS}
 )
 
-set_target_properties(ghostwriter PROPERTIES
+set_target_properties(moogle PROPERTIES
     WIN32_EXECUTABLE ON
     MACOSX_BUNDLE ON
 )

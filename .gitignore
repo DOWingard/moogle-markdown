@@ -73,3 +73,7 @@ Makefile*
 .DS_Store
 
 
+
+# moogle
+.env
+CONTEXT/
